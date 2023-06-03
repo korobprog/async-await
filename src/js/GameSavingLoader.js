@@ -1,37 +1,29 @@
 import json from "./parser";
 import read from "./reader";
 
-describe("GameSavingLoader class", () => {
-  test("should return a valid GameSaving object", async () => {
-    const expectedSaving = {
-      id: 9,
-      created: new Date(1546300800),
-      userInfo: {
-        id: 1,
-        name: "Hitman",
-        level: 10,
-        points: 2000,
-      },
-    };
-
-    const saving = await GameSavingLoader.load();
-    expect(saving).toEqual(expectedSaving);
-  });
-
-  test("should throw an error when encountering an invalid file", async () => {
-    const expectedError = new Error("Error while parsing the GameSaving file");
-
-    // replace the read() and json() functions with ones that always reject a promise
-    const mockRead = jest.fn(() => Promise.reject());
-    const mockJson = jest.fn(() => Promise.reject());
-
-    jest.mock("./reader", () => ({ default: mockRead }));
-    jest.mock("./parser", () => ({ default: mockJson }));
-
+export default class GameSavingLoader {
+  static async load() {
     try {
-      await GameSavingLoader.load();
+      const buffer = await read(); // get the data buffer from the read() function
+      const rawString = await json(buffer); // convert the buffer to text and parse it as json
+      const data = JSON.parse(rawString); // extract the needed fields from the json object
+
+      // return a new GameSaving object with the parsed fields
+      const gameSaving = {
+        id: data.id,
+        created: new Date(data.created),
+        userInfo: {
+          id: data.userInfo.id,
+          name: data.userInfo.name,
+          level: data.userInfo.level,
+          points: data.userInfo.points,
+        },
+      };
+
+      return gameSaving;
     } catch (error) {
-      expect(error).toEqual(expectedError);
+      // exit with an error if something goes wrong
+      throw new Error("Error while parsing the GameSaving file");
     }
-  });
-});
+  }
+}
